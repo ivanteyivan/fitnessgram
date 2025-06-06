@@ -1,0 +1,20 @@
+[
+    {
+        "name": "Beginner Full Body",
+        "description": "A complete full body workout plan for beginners",
+        "duration": 45,
+        "author": 1
+    },
+    {
+        "name": "Intermediate Split",
+        "description": "Upper/lower body split for intermediate lifters",
+        "duration": 60,
+        "author": 1
+    },
+    {
+        "name": "Advanced Powerlifting",
+        "description": "Powerlifting focused program for advanced athletes",
+        "duration": 90,
+        "author": 1
+    }
+] 

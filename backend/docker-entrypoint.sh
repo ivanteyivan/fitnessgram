@@ -17,6 +17,13 @@ mkdir -p /app/static/ /app/media/
 # Apply database migrations
 python manage.py migrate
 
+# Create superuser
+python manage.py create_superuser
+
+# Load test data
+python manage.py load_exercises
+python manage.py load_workout_plans
+
 # Collect static files
 python manage.py collectstatic --noinput
 

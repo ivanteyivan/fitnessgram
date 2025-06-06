@@ -1,0 +1,32 @@
+[
+    {
+        "name": "Push-ups",
+        "muscle_group": "chest",
+        "description": "A classic bodyweight exercise that targets the chest, shoulders, and triceps",
+        "difficulty": "beginner"
+    },
+    {
+        "name": "Pull-ups",
+        "muscle_group": "back",
+        "description": "An upper body exercise that primarily targets the back and biceps",
+        "difficulty": "intermediate"
+    },
+    {
+        "name": "Squats",
+        "muscle_group": "legs",
+        "description": "A compound exercise that targets the quadriceps, hamstrings, and glutes",
+        "difficulty": "beginner"
+    },
+    {
+        "name": "Deadlift",
+        "muscle_group": "back",
+        "description": "A compound exercise that targets the entire posterior chain",
+        "difficulty": "advanced"
+    },
+    {
+        "name": "Bench Press",
+        "muscle_group": "chest",
+        "description": "A compound exercise that targets the chest, shoulders, and triceps",
+        "difficulty": "intermediate"
+    }
+] 
