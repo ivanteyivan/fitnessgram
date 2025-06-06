@@ -1,54 +1,61 @@
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.db.models import Sum
+from django.shortcuts import get_object_or_404
+from djoser.serializers import SetPasswordSerializer
+from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.permissions import (IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
-from rest_framework.pagination import LimitOffsetPagination
-from django.shortcuts import get_object_or_404
-from djoser.views import UserViewSet
+from rest_framework.viewsets import ModelViewSet
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
 
-
-from api.serializers import FollowSerializer
-from users.serializers import UserSerializer
-from recipes.serializers import AddAvatar
-from const.errors import ERRORS
-from recipes.models import (
-    User,
-    Follow,
+from users.models import Follow
+from users.serializers import (
+    UserSerializer,
+    UserWithWorkoutPlansSerializer,
+    FollowSerializer,
 )
+from workout_plans.models import WorkoutPlan, Favorite
+from workout_plans.serializers import WorkoutPlanSerializer
+
+User = get_user_model()
 
 
-class FollowViewSet(UserViewSet):
-    """ViewSet для работы с подписками пользователей.
-
-    Предоставляет функционал для подписки на авторов, просмотра подписок
-    и управления аватаром пользователя.
-    """
+class UserViewSet(DjoserUserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
-    pagination_class = LimitOffsetPagination
+    permission_classes = (IsAuthenticated,)
+    filter_backends = (DjangoFilterBackend, SearchFilter)
+    search_fields = ("username", "email")
+    lookup_field = "id"
+
+    def get_serializer_class(self):
+        if self.action in ("list", "retrieve"):
+            return UserWithWorkoutPlansSerializer
+        return UserSerializer
 
     @action(
         detail=True,
         methods=["post", "delete"],
         permission_classes=[IsAuthenticated],
-        url_path="subscribe",
     )
     def subscribe(self, request, id=None):
-        """Добавляет или удаляет подписку на автора."""
         user = request.user
         author = get_object_or_404(User, id=id)
 
         if request.method == "POST":
             if user == author:
                 return Response(
-                    {"errors": ERRORS["self_subscribe"]},
+                    {"error": "Нельзя подписаться на самого себя!"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if Follow.objects.filter(user=user, author=author).exists():
                 return Response(
-                    {"errors": ERRORS["already_subscribed"]},
+                    {"error": "Вы уже подписаны на этого пользователя!"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             Follow.objects.create(user=user, author=author)
@@ -56,40 +63,30 @@ class FollowViewSet(UserViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
-            follow = Follow.objects.filter(author=author, user=user)
-            if not follow.exists():
+            if not Follow.objects.filter(user=user, author=author).exists():
                 return Response(
-                    {"errors": ERRORS["not_subscribed"]},
+                    {"error": "Вы не подписаны на этого пользователя!"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            follow.delete()
+            Follow.objects.filter(user=user, author=author).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-
-        return Response(
-            {"error": "Метод не разрешен"}, status=status.
-            HTTP_405_METHOD_NOT_ALLOWED
-        )
 
     @action(
         detail=False,
         methods=["get"],
         permission_classes=[IsAuthenticated],
-        url_path="subscriptions",
     )
     def subscriptions(self, request):
-        """Возвращает список авторов, на которых подписан пользователь."""
         user = request.user
-        queryset = User.objects.filter(following__user=user).prefetch_related(
-            "recipes")
-        if not queryset:
+        if not Follow.objects.filter(user=user).exists():
             return Response(
-                ERRORS["no_subscriptions"], status=status.HTTP_400_BAD_REQUEST
+                {"error": "Вы ни на кого не подписаны."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(queryset, request)
-        serializer = FollowSerializer(page, many=True, context={"request":
-                                                                request})
-        return paginator.get_paginated_response(serializer.data)
+        follows = Follow.objects.filter(user=user)
+        authors = [follow.author for follow in follows]
+        serializer = FollowSerializer(authors, many=True, context={"request": request})
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"], permission_classes=[
         IsAuthenticated])

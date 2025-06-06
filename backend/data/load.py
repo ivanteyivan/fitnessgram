@@ -1,25 +1,25 @@
 import json
 import django
 import os
-from recipes.models import Ingredient
+from exercises.models import Exercise
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "foodgram.settings")
 django.setup()
 
 
-def load_data():
+def load_exercises():
     with open(
-        "A:/Dev/foodgram/foodgram-st/backend/data/ingredients.json",
-        "r",
+        os.path.join(
+            os.path.dirname(__file__),
+            "exercises.json"
+        ),
         encoding="utf-8",
-    ) as f:
-        data = json.load(f)
-
+    ) as file:
+        data = json.load(file)
     for item in data:
-        Ingredient.objects.create(**item)
-
-    print(f"Успешно загружено {len(data)} записей")
+            Exercise.objects.create(**item)
+        print(f"Успешно загружено {len(data)} упражнений")
 
 
 if __name__ == "__main__":
-    load_data()
+    load_exercises()

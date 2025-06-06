@@ -1,59 +1,54 @@
-from rest_framework import status, viewsets
-from rest_framework.response import Response
 from django.shortcuts import get_object_or_404, redirect
 from django.conf import settings
-from django.core.cache import cache
-import logging
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
-from ingredient.serializers import IngredientSimpleSerializer
-from recipes.models import (
-    Ingredient,
-    RecipeShortLink,
+from exercises.serializers import ExerciseShortSerializer
+from workout_plans.models import (
+    Exercise,
+    WorkoutPlanShortLink,
 )
+from users.models import User
+from users.serializers import UserSerializer
 
 
-logger = logging.getLogger(__name__)
-
-
-class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSimpleSerializer
+class ExerciseViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Exercise.objects.all()
+    serializer_class = ExerciseShortSerializer
+    permission_classes = (IsAuthenticated,)
     pagination_class = None
 
     def get_queryset(self):
-        queryset = Ingredient.objects.all()
-        name = self.request.query_params.get("name", "").strip()
+        queryset = Exercise.objects.all()
+        name = self.request.query_params.get('name')
         if name:
-            return queryset.filter(name__istartswith=name)
+            queryset = queryset.filter(name__istartswith=name)
         return queryset
 
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_permissions(self):
+        if self.action in ['create', 'list']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        return User.objects.all()
+
+
 def redirect_by_hash(request, url_hash):
-    if not url_hash:
-        return Response(
-            {"error": "Неверный формат ссылки"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
     try:
-        cache_key = f"recipe_hash_{url_hash}"
-        recipe_id = cache.get(cache_key)
-
-        if not recipe_id:
-            short_link = get_object_or_404(RecipeShortLink, url_hash=url_hash)
-            recipe_id = short_link.recipe.id
-            cache.set(cache_key, recipe_id, 3600)  # кэшируем на 1 час
-
-        return redirect(f"{settings.BASE_URL}/api/recipes/{recipe_id}")
-    except RecipeShortLink.DoesNotExist:
-        logger.error(f"Short link not found for hash: {url_hash}")
+        short_link = get_object_or_404(WorkoutPlanShortLink, url_hash=url_hash)
+        workout_plan_id = short_link.workout_plan.id
+        return redirect(f"{settings.BASE_URL}/api/workout-plans/{workout_plan_id}")
+    except WorkoutPlanShortLink.DoesNotExist:
         return Response(
-            {"error": "Рецепт не найден"},
+            {"error": "Ссылка не найдена"},
             status=status.HTTP_404_NOT_FOUND
-        )
-    except Exception as e:
-        logger.error(f"Error redirecting hash {url_hash}: {str(e)}")
-        return Response(
-            {"error": "Внутренняя ошибка сервера"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

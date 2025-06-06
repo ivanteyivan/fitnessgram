@@ -1,40 +1,77 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from recipes.serializers import ShortRecipeSerializer, UserSerializer
+from users.models import User
+from workout_plans.serializers import WorkoutPlanSerializer
+from djoser.serializers import UserCreateSerializer, UserSerializer
 
 
 User = get_user_model()
 
 
-class FollowSerializer(UserSerializer):
-    recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
+class CustomUserCreateSerializer(UserCreateSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'password',
+        )
+        extra_kwargs = {
+            'password': {'write_only': True},
+        }
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            username=validated_data['username'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            password=validated_data['password'],
+        )
+        return user
+
+
+class CustomUserSerializer(UserSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+        )
+
+
+class UserWithWorkoutPlansSerializer(UserSerializer):
+    workout_plans = serializers.SerializerMethodField()
+    workout_plans_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
-            "id",
-            "first_name",
-            "last_name",
-            "email",
-            "username",
-            "is_subscribed",
-            "avatar",
-            "recipes",
-            "recipes_count",
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'workout_plans',
+            'workout_plans_count',
         )
 
-    def get_recipes(self, obj):
-        request = self.context.get("request")
-        recipes = obj.recipes.all()
+    def get_workout_plans(self, obj):
+        request = self.context.get('request')
+        workout_plans = obj.workout_plans.all()
+        workout_plans_limit = request.query_params.get('workout_plans_limit')
+        if workout_plans_limit and workout_plans_limit.isdigit():
+            workout_plans = workout_plans[:int(workout_plans_limit)]
+        return WorkoutPlanSerializer(
+            workout_plans, many=True, context=self.context
+        ).data
 
-        recipes_limit = request.query_params.get("recipes_limit")
-        if recipes_limit and recipes_limit.isdigit():
-            recipes = recipes[: int(recipes_limit)]
-
-        return ShortRecipeSerializer(
-            recipes, many=True, context=self.context).data
-
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
+    def get_workout_plans_count(self, obj):
+        return obj.workout_plans.count()

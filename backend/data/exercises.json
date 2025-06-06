@@ -1,0 +1,102 @@
+[
+    {
+        "model": "exercises.exercise",
+        "pk": 1,
+        "fields": {
+            "name": "Приседания со штангой",
+            "muscle_group": "Ноги",
+            "description": "Базовое упражнение для развития мышц ног. Выполняется со штангой на плечах.",
+            "difficulty": "intermediate"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 2,
+        "fields": {
+            "name": "Жим штанги лежа",
+            "muscle_group": "Грудь",
+            "description": "Классическое упражнение для развития грудных мышц. Выполняется лежа на скамье.",
+            "difficulty": "intermediate"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 3,
+        "fields": {
+            "name": "Становая тяга",
+            "muscle_group": "Спина",
+            "description": "Базовое упражнение для развития мышц спины и задней цепи. Выполняется со штангой.",
+            "difficulty": "advanced"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 4,
+        "fields": {
+            "name": "Подтягивания",
+            "muscle_group": "Спина",
+            "description": "Упражнение для развития широчайших мышц спины. Выполняется на перекладине.",
+            "difficulty": "intermediate"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 5,
+        "fields": {
+            "name": "Отжимания",
+            "muscle_group": "Грудь",
+            "description": "Базовое упражнение для развития грудных мышц и трицепса. Выполняется с собственным весом.",
+            "difficulty": "beginner"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 6,
+        "fields": {
+            "name": "Планка",
+            "muscle_group": "Пресс",
+            "description": "Статическое упражнение для укрепления мышц кора и пресса.",
+            "difficulty": "beginner"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 7,
+        "fields": {
+            "name": "Выпады с гантелями",
+            "muscle_group": "Ноги",
+            "description": "Упражнение для развития мышц ног и ягодиц. Выполняется с гантелями.",
+            "difficulty": "beginner"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 8,
+        "fields": {
+            "name": "Жим гантелей сидя",
+            "muscle_group": "Плечи",
+            "description": "Упражнение для развития дельтовидных мышц. Выполняется сидя с гантелями.",
+            "difficulty": "intermediate"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 9,
+        "fields": {
+            "name": "Подъемы на носки",
+            "muscle_group": "Икры",
+            "description": "Упражнение для развития икроножных мышц. Выполняется стоя на специальном тренажере.",
+            "difficulty": "beginner"
+        }
+    },
+    {
+        "model": "exercises.exercise",
+        "pk": 10,
+        "fields": {
+            "name": "Скручивания",
+            "muscle_group": "Пресс",
+            "description": "Базовое упражнение для развития мышц пресса. Выполняется лежа на полу.",
+            "difficulty": "beginner"
+        }
+    }
+] 

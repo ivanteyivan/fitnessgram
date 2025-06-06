@@ -1,0 +1,186 @@
+[
+    {
+        "model": "workout_plans.workoutplan",
+        "pk": 1,
+        "fields": {
+            "name": "Начальный план для всего тела",
+            "description": "Идеальный план для начинающих, который прорабатывает все основные группы мышц. Подходит для тех, кто только начинает свой путь в фитнесе.",
+            "duration": 45,
+            "author": 1,
+            "created_at": "2025-06-05T18:48:12Z"
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 1,
+        "fields": {
+            "workout_plan": 1,
+            "exercise": 1,
+            "sets": 3,
+            "reps": 12
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 2,
+        "fields": {
+            "workout_plan": 1,
+            "exercise": 2,
+            "sets": 3,
+            "reps": 12
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 3,
+        "fields": {
+            "workout_plan": 1,
+            "exercise": 3,
+            "sets": 3,
+            "reps": 15
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 4,
+        "fields": {
+            "workout_plan": 1,
+            "exercise": 4,
+            "sets": 3,
+            "reps": 30
+        }
+    },
+    {
+        "model": "workout_plans.workoutplan",
+        "pk": 2,
+        "fields": {
+            "name": "Продвинутая тренировка ног",
+            "description": "Интенсивная тренировка для развития силы и массы ног. Рекомендуется для опытных атлетов.",
+            "duration": 60,
+            "author": 1,
+            "created_at": "2025-06-05T18:48:12Z"
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 5,
+        "fields": {
+            "workout_plan": 2,
+            "exercise": 1,
+            "sets": 4,
+            "reps": 8
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 6,
+        "fields": {
+            "workout_plan": 2,
+            "exercise": 5,
+            "sets": 3,
+            "reps": 12
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 7,
+        "fields": {
+            "workout_plan": 2,
+            "exercise": 6,
+            "sets": 4,
+            "reps": 15
+        }
+    },
+    {
+        "model": "workout_plans.workoutplan",
+        "pk": 3,
+        "fields": {
+            "name": "Тренировка верхней части тела",
+            "description": "Комплексная тренировка для развития мышц груди, спины и плеч.",
+            "duration": 50,
+            "author": 1,
+            "created_at": "2025-06-05T18:48:12Z"
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 8,
+        "fields": {
+            "workout_plan": 3,
+            "exercise": 2,
+            "sets": 4,
+            "reps": 10
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 9,
+        "fields": {
+            "workout_plan": 3,
+            "exercise": 7,
+            "sets": 3,
+            "reps": 8
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 10,
+        "fields": {
+            "workout_plan": 3,
+            "exercise": 8,
+            "sets": 3,
+            "reps": 12
+        }
+    },
+    {
+        "model": "workout_plans.workoutplan",
+        "pk": 4,
+        "fields": {
+            "name": "Круговая тренировка",
+            "description": "Высокоинтенсивная круговая тренировка для сжигания жира и развития выносливости.",
+            "duration": 40,
+            "author": 1,
+            "created_at": "2025-06-05T18:48:12Z"
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 11,
+        "fields": {
+            "workout_plan": 4,
+            "exercise": 3,
+            "sets": 3,
+            "reps": 15
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 12,
+        "fields": {
+            "workout_plan": 4,
+            "exercise": 1,
+            "sets": 3,
+            "reps": 15
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 13,
+        "fields": {
+            "workout_plan": 4,
+            "exercise": 4,
+            "sets": 3,
+            "reps": 45
+        }
+    },
+    {
+        "model": "workout_plans.workoutplanexercise",
+        "pk": 14,
+        "fields": {
+            "workout_plan": 4,
+            "exercise": 9,
+            "sets": 3,
+            "reps": 20
+        }
+    }
+] 

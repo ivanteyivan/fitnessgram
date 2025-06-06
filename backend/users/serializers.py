@@ -1,30 +1,60 @@
 from rest_framework import serializers
-
-from const.photo import ImageField
-from recipes.models import (
-    Follow,
-    User,
+from django.contrib.auth import get_user_model
+from workout_plans.models import (
+    WorkoutPlan,
+    Favorite,
 )
+
+User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
-    avatar = ImageField(required=False)
 
     class Meta:
         model = User
         fields = (
-            "id",
-            "first_name",
-            "last_name",
-            "email",
-            "username",
-            "is_subscribed",
-            "avatar",
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
         )
 
     def get_is_subscribed(self, obj):
-        request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
+        user = self.context.get('request').user
+        if user.is_anonymous:
             return False
-        return Follow.objects.filter(user=request.user, author=obj).exists()
+        return user.follower.filter(author=obj).exists()
+
+
+class UserWithWorkoutPlansSerializer(UserSerializer):
+    workout_plans = serializers.SerializerMethodField()
+    workout_plans_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'workout_plans',
+            'workout_plans_count',
+        )
+
+    def get_workout_plans(self, obj):
+        request = self.context.get('request')
+        workout_plans = obj.workout_plans.all()
+        workout_plans_limit = request.query_params.get('workout_plans_limit')
+        if workout_plans_limit and workout_plans_limit.isdigit():
+            workout_plans = workout_plans[:int(workout_plans_limit)]
+        return WorkoutPlanSerializer(
+            workout_plans, many=True, context=self.context
+        ).data
+
+    def get_workout_plans_count(self, obj):
+        return obj.workout_plans.count()

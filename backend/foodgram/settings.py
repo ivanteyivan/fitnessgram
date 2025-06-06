@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import timedelta
 
 
 load_dotenv()
@@ -37,6 +38,15 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:80",
+    "http://127.0.0.1:80",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+]
 
 # Application definition
 
@@ -59,10 +69,10 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "api.apps.ApiConfig",
-    "recipes.apps.RecipesConfig",
     "users.apps.UsersConfig",
     "const.apps.ConstConfig",
-    "ingredient.apps.IngredientConfig",
+    "exercises.apps.ExercisesConfig",
+    "workout_plans.apps.WorkoutPlansConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -79,9 +89,12 @@ MIDDLEWARE = [
 ]
 
 if DEBUG:
-    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
     INSTALLED_APPS.append("debug_toolbar")
     INTERNAL_IPS = ["127.0.0.1"]
+    DEBUG_TOOLBAR_CONFIG = {
+        "SHOW_TOOLBAR_CALLBACK": lambda request: True,
+    }
 
 ROOT_URLCONF = "foodgram.urls"
 
@@ -103,36 +116,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "foodgram.wsgi.application"
 
-
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-DATABASES = {
-    "default": {
-        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
-        "NAME": os.getenv("DB_NAME", "postgres"),
-        "USER": os.getenv("POSTGRES_USER", "postgres"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
-        "HOST": os.getenv("DB_HOST", "db"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-    }
-}
-"""
-DataBase Sqlite for pytest
-"""
-
-
-"""
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'postgres'),
+        'USER': os.getenv('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
+        'HOST': os.getenv('DB_HOST', 'db'),
+        'PORT': os.getenv('DB_PORT', 5432)
     }
 }
-"""
 
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -149,39 +145,24 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
 LANGUAGE_CODE = "ru-ru"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static"
-
 STATICFILES_DIRS = []
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = "/var/html/media"
-# MEDIA_ROOT = BASE_DIR / "media"
-
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Отключаем ManifestStaticFilesStorage для отладки проблем со статикой
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
-
 # Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -191,29 +172,40 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
     ],
-    "DEFAULT_PAGINATION_CLASS": ("rest_framework.pagination.PageNumberPagination"),
-    "PAGE_SIZE": 6,
-    "DEFAULT_THROTTLE_CLASSES": [
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
-    ],
-    "DEFAULT_THROTTLE_RATES": {"anon": "100/hour", "user": "1000/hour"},
 }
 
 DJOSER = {
     "LOGIN_FIELD": "email",
     "HIDE_USERS": False,
-    "PASSWORD_CHANGED_EMAIL_CONFIRMATION": False,
-    "TOKEN_MODEL": "rest_framework.authtoken.models.Token",
     "SERIALIZERS": {
-        "user": "api.serializers.UserSerializer",
-        "current_user": "api.serializers.UserSerializer",
+        "user_create": "api.serializers.CustomUserCreateSerializer",
+        "user": "api.serializers.CustomUserSerializer",
+        "current_user": "api.serializers.CustomUserSerializer",
     },
     "PERMISSIONS": {
         "user": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
         "user_list": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
-        "current_user": ["rest_framework.permissions.IsAuthenticated"],
     },
+    "TOKEN_MODEL": "rest_framework.authtoken.models.Token",
+    "AUTH_TOKEN_CLASSES": ["rest_framework.authtoken.models.Token"],
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ["rest_framework.authtoken.models.Token"],
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework.authtoken.models.TokenUser",
+    "JWT_ALLOW_REFRESH": True,
+    "JWT_AUTH_HEADER_TYPES": ("Bearer",),
+    "JWT_AUTH_REFRESH_COOKIE": "refresh_token",
+    "JWT_AUTH_COOKIE": "access_token",
+    "JWT_AUTH_SECURE": False,
+    "JWT_AUTH_HTTPONLY": True,
+    "JWT_AUTH_SAMESITE": "Lax",
+    "JWT_AUTH_RETURN_EXPIRATION": True,
+    "JWT_EXPIRATION_DELTA": timedelta(days=1),
+    "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
 }
 
 LOGGING = {
@@ -248,14 +240,6 @@ CACHES = {
         "TIMEOUT": 300,  # 5 минут таймаут
     }
 }
-
-# Настройки CORS
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
-CORS_ALLOW_CREDENTIALS = True
 
 # Разрешенные заголовки для CORS
 CORS_ALLOW_HEADERS = [
