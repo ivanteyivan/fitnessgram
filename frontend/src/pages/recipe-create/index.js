@@ -23,7 +23,7 @@ const RecipeCreate = () => {
   const [ingredientValue, setIngredientValue] = useState({
     name: "",
     id: null,
-    sets: "",
+    sets: 1,
     reps: "",
     measurement_unit: "",
   });
@@ -39,20 +39,13 @@ const RecipeCreate = () => {
 
   const handleAddIngredient = () => {
     if (
-      ingredientValue.sets === "" ||
       ingredientValue.reps === "" ||
-      !/^\d+$/.test(String(ingredientValue.sets)) ||
       !/^\d+$/.test(String(ingredientValue.reps))
     ) {
-      return setIngredientError(
-        "Подходы и повторения должны быть целыми числами"
-      );
+      return setIngredientError("Повторения должны быть целыми числами");
     }
-    if (
-      Number(ingredientValue.sets) < 1 ||
-      Number(ingredientValue.reps) < 1
-    ) {
-      return setIngredientError("Минимум 1 подход и 1 повторение");
+    if (Number(ingredientValue.reps) < 1) {
+      return setIngredientError("Минимум 1 повторение");
     }
 
     if (
@@ -66,11 +59,14 @@ const RecipeCreate = () => {
       return setIngredientError("Это упражнение уже добавлено");
     }
 
-    setRecipeIngredients([...recipeIngredients, { ...ingredientValue }]);
+    setRecipeIngredients([
+      ...recipeIngredients,
+      { ...ingredientValue, sets: 1 },
+    ]);
     setIngredientValue({
       name: "",
       id: null,
-      sets: "",
+      sets: 1,
       reps: "",
       measurement_unit: "",
     });
@@ -133,7 +129,7 @@ const RecipeCreate = () => {
               name: recipeName,
               ingredients: recipeIngredients.map((item) => ({
                 id: item.id,
-                sets: Number(item.sets),
+                sets: 1,
                 reps: Number(item.reps),
               })),
               cooking_time: recipeTime,
@@ -199,29 +195,6 @@ const RecipeCreate = () => {
                 value={ingredientValue.name}
               />
               <div className={styles.ingredientsAmountInputContainer}>
-                <p className={styles.amountText}>подходы </p>
-                <Input
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddIngredient();
-                    }
-                  }}
-                  className={styles.ingredientsAmountInput}
-                  inputClassName={styles.ingredientsAmountValue}
-                  onChange={(e) => {
-                    setSubmitError({ submitError: "" });
-                    setIngredientError("");
-                    setIngredientValue({
-                      ...ingredientValue,
-                      sets: e.target.value,
-                    });
-                  }}
-                  placeholder="3"
-                  value={ingredientValue.sets}
-                  type="number"
-                  min={1}
-                />
                 <p className={styles.amountText}>повторения </p>
                 <Input
                   onKeyDown={(e) => {
@@ -282,7 +255,7 @@ const RecipeCreate = () => {
                     </span>
                     <span> — </span>
                     <span>
-                      {item.sets}×{item.reps}
+                      {item.reps} повторений
                     </span>
                     {item.measurement_unit ? (
                       <span> ({item.measurement_unit})</span>

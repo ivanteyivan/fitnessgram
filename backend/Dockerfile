@@ -16,9 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /app/static/ /var/html/media/recipes_photo /var/html/media/avatar_photos && \
-    chown -R www-data:www-data /var/html/media/ && \
-    chmod -R 755 /var/html/media/
+RUN mkdir -p /app/static/ /app/media/ && \
+    chmod -R 755 /app/static/ /app/media/
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh

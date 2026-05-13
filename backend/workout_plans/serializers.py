@@ -18,7 +18,7 @@ User = get_user_model()
 class ExerciseInputSerializer(serializers.Serializer):
     """Валидатор для одного упражнения в плане тренировок."""
     id = serializers.IntegerField(required=True, min_value=1)
-    sets = serializers.IntegerField(required=True, min_value=1)
+    sets = serializers.IntegerField(required=False, min_value=1, default=1)
     reps = serializers.IntegerField(required=True, min_value=1)
 
 
@@ -133,7 +133,7 @@ class WorkoutPlanCreateSerializer(serializers.ModelSerializer):
             WorkoutPlanExercise.objects.create(
                 workout_plan=workout_plan,
                 exercise_id=exercise_data['id'],
-                sets=exercise_data['sets'],
+                sets=exercise_data.get('sets', 1),
                 reps=exercise_data['reps'],
             )
         
@@ -143,18 +143,18 @@ class WorkoutPlanCreateSerializer(serializers.ModelSerializer):
         if 'exercises' in validated_data:
             exercises_data = validated_data.pop('exercises')
             instance.exercises_items.all().delete()
-            
+
             for exercise_data in exercises_data:
                 WorkoutPlanExercise.objects.create(
                     workout_plan=instance,
                     exercise_id=exercise_data['id'],
-                    sets=exercise_data['sets'],
+                    sets=exercise_data.get('sets', 1),
                     reps=exercise_data['reps'],
                 )
-        
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        
+
         instance.save()
         return instance
 

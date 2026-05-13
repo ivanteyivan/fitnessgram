@@ -60,7 +60,7 @@ class Api {
       name: this._translateExerciseName(ex.name),
       sets: ex.sets,
       reps: ex.reps,
-      amount: `${ex.sets}×${ex.reps}`,
+      amount: `${ex.reps} повторений`,
       measurement_unit: ex.muscle_group || "",
     }));
     return {
@@ -254,7 +254,7 @@ class Api {
     formData.append("duration", String(Number(cooking_time)));
     const exercises = ingredients.map((item) => ({
       id: Number(item.id),
-      sets: Number(item.sets ?? item.amount ?? 1),
+      sets: 1,
       reps: Number(item.reps ?? 1),
     }));
     formData.append("exercises", JSON.stringify(exercises));
@@ -279,7 +279,7 @@ class Api {
     formData.append("duration", String(Number(cooking_time)));
     const exercises = ingredients.map((item) => ({
       id: Number(item.id),
-      sets: Number(item.sets ?? item.amount ?? 1),
+      sets: 1,
       reps: Number(item.reps ?? 1),
     }));
     formData.append("exercises", JSON.stringify(exercises));

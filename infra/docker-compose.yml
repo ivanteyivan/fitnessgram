@@ -26,7 +26,7 @@ services:
       - db
     volumes:
       - static:/app/static
-      - media:/var/html/media
+      - media:/app/media
     restart: always
 
   frontend:
