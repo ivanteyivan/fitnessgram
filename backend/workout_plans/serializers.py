@@ -1,13 +1,31 @@
+import secrets
+import string
+
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from exercises.serializers import ExerciseSerializer, ExerciseShortSerializer
 from .models import (
     WorkoutPlan,
     WorkoutPlanExercise,
     Favorite,
     WorkoutPlanShortLink,
 )
+
+User = get_user_model()
+
+
+class WorkoutPlanAuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "avatar",
+        )
 
 
 class WorkoutPlanExerciseSerializer(serializers.ModelSerializer):
@@ -23,28 +41,30 @@ class WorkoutPlanExerciseSerializer(serializers.ModelSerializer):
 
 class WorkoutPlanSerializer(serializers.ModelSerializer):
     exercises = WorkoutPlanExerciseSerializer(
-        source='exercises_items',
+        source="exercises_items",
         many=True,
         read_only=True,
     )
-    author = serializers.PrimaryKeyRelatedField(
-        read_only=True,
-        default=serializers.CurrentUserDefault()
-    )
+    author = WorkoutPlanAuthorSerializer(read_only=True)
+    is_favorited = serializers.SerializerMethodField()
 
     class Meta:
         model = WorkoutPlan
         fields = (
-            'id',
-            'name',
-            'author',
-            'description',
-            'image',
-            'exercises',
-            'duration',
-            'created_at',
+            "id",
+            "name",
+            "author",
+            "description",
+            "image",
+            "exercises",
+            "duration",
+            "created_at",
+            "is_favorited",
         )
-        read_only_fields = ('id', 'author', 'created_at')
+        read_only_fields = ("id", "author", "created_at", "is_favorited")
+
+    def get_is_favorited(self, obj):
+        return bool(getattr(obj, "is_favorited_flag", False))
 
 
 class WorkoutPlanCreateSerializer(serializers.ModelSerializer):
@@ -115,4 +135,16 @@ class WorkoutPlanShortLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkoutPlanShortLink
         fields = ('url_hash', 'workout_plan', 'created_at')
-        read_only_fields = ('url_hash', 'created_at') 
+        read_only_fields = ('url_hash', 'created_at')
+
+    def create(self, validated_data):
+        alphabet = string.ascii_lowercase + string.digits
+        for _ in range(50):
+            url_hash = ''.join(secrets.choice(alphabet) for _ in range(10))
+            if not WorkoutPlanShortLink.objects.filter(url_hash=url_hash).exists():
+                return WorkoutPlanShortLink.objects.create(
+                    url_hash=url_hash, **validated_data
+                )
+        raise serializers.ValidationError(
+            {'url_hash': ['Не удалось сгенерировать уникальный хэш.']}
+        )

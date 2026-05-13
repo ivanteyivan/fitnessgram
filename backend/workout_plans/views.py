@@ -1,5 +1,5 @@
-from django.shortcuts import render, get_object_or_404
-from django.db.models import Sum
+from django.shortcuts import get_object_or_404
+from django.db.models import BooleanField, Exists, OuterRef, Value
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -15,6 +15,7 @@ from .serializers import (
     WorkoutPlanShortLinkSerializer,
 )
 from .filters import WorkoutPlanFilter
+from foodgram.pagination import PageLimitPagination
 
 
 class WorkoutPlanViewSet(viewsets.ModelViewSet):
@@ -22,10 +23,29 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_backends = (DjangoFilterBackend, SearchFilter)
     filterset_class = WorkoutPlanFilter
-    search_fields = ('name', 'description', 'exercises__name')
+    search_fields = ("name", "description", "exercises__name")
+    pagination_class = PageLimitPagination
+
+    def get_queryset(self):
+        qs = WorkoutPlan.objects.select_related("author").prefetch_related(
+            "exercises_items__exercise",
+        )
+        user = self.request.user
+        if user.is_authenticated:
+            return qs.annotate(
+                is_favorited_flag=Exists(
+                    Favorite.objects.filter(
+                        user=user,
+                        workout_plan_id=OuterRef("pk"),
+                    )
+                )
+            )
+        return qs.annotate(
+            is_favorited_flag=Value(False, output_field=BooleanField()),
+        )
 
     def get_serializer_class(self):
-        if self.action in ('create', 'partial_update'):
+        if self.action in ("create", "update", "partial_update"):
             return WorkoutPlanCreateSerializer
         return WorkoutPlanSerializer
 

@@ -1,9 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from workout_plans.models import (
-    WorkoutPlan,
-    Favorite,
-)
+from workout_plans.serializers import WorkoutPlanSerializer
 
 User = get_user_model()
 
@@ -19,14 +16,12 @@ class UserSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
+            'avatar',
             'is_subscribed',
         )
 
     def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return user.follower.filter(author=obj).exists()
+        return False
 
 
 class UserWithWorkoutPlansSerializer(UserSerializer):
@@ -41,6 +36,7 @@ class UserWithWorkoutPlansSerializer(UserSerializer):
             'username',
             'first_name',
             'last_name',
+            'avatar',
             'is_subscribed',
             'workout_plans',
             'workout_plans_count',

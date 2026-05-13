@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from datetime import timedelta
-
 
 load_dotenv()
 
@@ -37,6 +35,24 @@ DEBUG = True
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
+
+# CSRF / reverse proxy (admin login через Nginx на localhost)
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.getenv(
+        "CSRF_TRUSTED_ORIGINS",
+        "http://localhost,http://127.0.0.1,"
+        "http://localhost:8000,http://127.0.0.1:8000,"
+        "http://localhost:80,http://127.0.0.1:80",
+    ).split(",")
+    if o.strip()
+]
+USE_X_FORWARDED_HOST = os.getenv("USE_X_FORWARDED_HOST", "True").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
@@ -187,25 +203,9 @@ DJOSER = {
         "user_list": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
     },
     "TOKEN_MODEL": "rest_framework.authtoken.models.Token",
-    "AUTH_TOKEN_CLASSES": ["rest_framework.authtoken.models.Token"],
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id",
-    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
-    "AUTH_TOKEN_CLASSES": ["rest_framework.authtoken.models.Token"],
-    "TOKEN_TYPE_CLAIM": "token_type",
-    "TOKEN_USER_CLASS": "rest_framework.authtoken.models.TokenUser",
-    "JWT_ALLOW_REFRESH": True,
-    "JWT_AUTH_HEADER_TYPES": ("Bearer",),
-    "JWT_AUTH_REFRESH_COOKIE": "refresh_token",
-    "JWT_AUTH_COOKIE": "access_token",
-    "JWT_AUTH_SECURE": False,
-    "JWT_AUTH_HTTPONLY": True,
-    "JWT_AUTH_SAMESITE": "Lax",
-    "JWT_AUTH_RETURN_EXPIRATION": True,
-    "JWT_EXPIRATION_DELTA": timedelta(days=1),
-    "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
 }
 
 LOGGING = {

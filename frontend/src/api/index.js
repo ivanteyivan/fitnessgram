@@ -24,11 +24,38 @@ class Api {
           a.download = "shopping-list";
           document.body.appendChild(a); // we need to append the element to the dom -> otherwise it will not work in firefox
           a.click();
-          a.remove(); //afterwards we remove the element again
+          a.remove(); // afterwards we remove the element again
         });
       }
       reject();
     });
+  }
+
+  /** Адаптер: план тренировок → поля карточки «рецепта» во фронте foodgram. */
+  _mapWorkoutPlanToRecipeCard(wp) {
+    if (!wp) return wp;
+    return {
+      id: wp.id,
+      name: wp.name,
+      image: wp.image,
+      tags: wp.tags || [],
+      author: wp.author || {},
+      cooking_time: wp.duration,
+      is_favorited: Boolean(wp.is_favorited),
+      is_in_shopping_cart: false,
+      text: wp.description,
+      ingredients: wp.ingredients || [],
+    };
+  }
+
+  _normalizePaginated(data) {
+    if (Array.isArray(data)) {
+      return { results: data, count: data.length };
+    }
+    return {
+      results: data.results || [],
+      count: data.count ?? (data.results || []).length,
+    };
   }
 
   signin({ email, password }) {
@@ -92,13 +119,14 @@ class Api {
 
   changeAvatar({ file }) {
     const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("avatar", file);
     return fetch(`/api/users/me/avatar/`, {
       method: "PUT",
       headers: {
-        ...this._headers,
         authorization: `Token ${token}`,
       },
-      body: JSON.stringify({ avatar: file }),
+      body: formData,
     }).then(this.checkResponse);
   }
 
@@ -123,95 +151,72 @@ class Api {
     }).then(this.checkResponse);
   }
 
-  // recipes
+  // «Рецепты» во фронте → планы тренировок на бэкенде
 
   getRecipes({
     page = 1,
     limit = 6,
     is_favorited = 0,
     is_in_shopping_cart = 0,
-    author
+    author,
   } = {}) {
     const token = localStorage.getItem("token");
     const authorization = token ? { authorization: `Token ${token}` } : {};
-    return fetch(
-      `/api/recipes/?page=${page}&limit=${limit}${
-        author ? `&author=${author}` : ""
-      }${is_favorited ? `&is_favorited=${is_favorited}` : ""}${
-        is_in_shopping_cart ? `&is_in_shopping_cart=${is_in_shopping_cart}` : ""
-      }`,
-      {
-        method: "GET",
-        headers: {
-          ...this._headers,
-          ...authorization,
-        },
-      }
-    ).then(this.checkResponse);
-  }
-
-  getRecipe({ recipe_id }) {
-    const token = localStorage.getItem("token");
-    const authorization = token ? { authorization: `Token ${token}` } : {};
-    return fetch(`/api/recipes/${recipe_id}/`, {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+    if (author) params.set("author", String(author));
+    if (is_favorited) params.set("is_favorited", "true");
+    return fetch(`/api/workout-plans/?${params.toString()}`, {
       method: "GET",
       headers: {
         ...this._headers,
         ...authorization,
       },
-    }).then(this.checkResponse);
+    })
+      .then(this.checkResponse)
+      .then((data) => {
+        const { results, count } = this._normalizePaginated(data);
+        return {
+          results: results.map((wp) => this._mapWorkoutPlanToRecipeCard(wp)),
+          count,
+        };
+      });
   }
 
-  createRecipe({
-    name = "",
-    image,
-    cooking_time = 0,
-    text = "",
-    ingredients = [],
-  }) {
+  getRecipe({ recipe_id }) {
     const token = localStorage.getItem("token");
-    return fetch("/api/recipes/", {
-      method: "POST",
+    const authorization = token ? { authorization: `Token ${token}` } : {};
+    return fetch(`/api/workout-plans/${recipe_id}/`, {
+      method: "GET",
       headers: {
         ...this._headers,
-        authorization: `Token ${token}`,
+        ...authorization,
       },
-      body: JSON.stringify({
-        name,
-        image,
-        cooking_time,
-        text,
-        ingredients,
-      }),
-    }).then(this.checkResponse);
+    })
+      .then(this.checkResponse)
+      .then((wp) => this._mapWorkoutPlanToRecipeCard(wp));
   }
 
-  updateRecipe(
-    { name, recipe_id, image, cooking_time, text, ingredients },
-    wasImageUpdated
-  ) {
-    // image was changed
-    const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/${recipe_id}/`, {
-      method: "PATCH",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
-      body: JSON.stringify({
-        name,
-        id: recipe_id,
-        image: wasImageUpdated ? image : undefined,
-        cooking_time: Number(cooking_time),
-        text,
-        ingredients,
-      }),
-    }).then(this.checkResponse);
+  createRecipe() {
+    return Promise.reject({
+      non_field_errors: [
+        "Создание плана через старую форму рецепта не поддерживается.",
+      ],
+    });
+  }
+
+  updateRecipe() {
+    return Promise.reject({
+      non_field_errors: [
+        "Редактирование через старую форму рецепта не поддерживается.",
+      ],
+    });
   }
 
   addToFavorites({ id }) {
     const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/${id}/favorite/`, {
+    return fetch(`/api/workout-plans/${id}/favorite/`, {
       method: "POST",
       headers: {
         ...this._headers,
@@ -222,7 +227,7 @@ class Api {
 
   removeFromFavorites({ id }) {
     const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/${id}/favorite/`, {
+    return fetch(`/api/workout-plans/${id}/favorite/`, {
       method: "DELETE",
       headers: {
         ...this._headers,
@@ -232,12 +237,18 @@ class Api {
   }
 
   copyRecipeLink({ id }) {
-    return fetch(`/api/recipes/${id}/get-link/`, {
-      method: "GET",
+    const token = localStorage.getItem("token");
+    return fetch(`/api/workout-plans/${id}/create_short_link/`, {
+      method: "POST",
       headers: {
         ...this._headers,
+        authorization: `Token ${token}`,
       },
-    }).then(this.checkResponse);
+    })
+      .then(this.checkResponse)
+      .then((data) => ({
+        "short-link": `${window.location.origin}/recipes/${id}?share=${data.url_hash}`,
+      }));
   }
 
   getUser({ id }) {
@@ -260,84 +271,58 @@ class Api {
         ...this._headers,
         authorization: `Token ${token}`,
       },
-    }).then(this.checkResponse);
+    })
+      .then(this.checkResponse)
+      .then((data) => this._normalizePaginated(data));
   }
 
-  // subscriptions
+  // subscriptions (в API fitnessgram нет подписок — заглушки)
 
-  getSubscriptions({ page, limit = 6, recipes_limit = 3 }) {
-    const token = localStorage.getItem("token");
-    return fetch(
-      `/api/users/subscriptions/?page=${page}&limit=${limit}&recipes_limit=${recipes_limit}`,
-      {
-        method: "GET",
-        headers: {
-          ...this._headers,
-          authorization: `Token ${token}`,
-        },
-      }
-    ).then(this.checkResponse);
+  getSubscriptions() {
+    return Promise.resolve({ results: [], count: 0 });
   }
 
-  deleteSubscriptions({ author_id }) {
-    const token = localStorage.getItem("token");
-    return fetch(`/api/users/${author_id}/subscribe/`, {
-      method: "DELETE",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
-    }).then(this.checkResponse);
+  deleteSubscriptions() {
+    return Promise.resolve({});
   }
 
-  subscribe({ author_id }) {
-    const token = localStorage.getItem("token");
-    return fetch(`/api/users/${author_id}/subscribe/`, {
-      method: "POST",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
-    }).then(this.checkResponse);
+  subscribe() {
+    return Promise.resolve({});
   }
 
-  // ingredients
+  // ingredients → упражнения (для автодополнения в старой форме)
   getIngredients({ name }) {
     const token = localStorage.getItem("token");
-    return fetch(`/api/ingredients/?name=${name}`, {
+    const q = name ? `?name=${encodeURIComponent(name)}` : "";
+    return fetch(`/api/exercises${q}`, {
       method: "GET",
       headers: {
         ...this._headers,
+        ...(token ? { authorization: `Token ${token}` } : {}),
       },
-    }).then(this.checkResponse);
+    })
+      .then(this.checkResponse)
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : data.results || [];
+        return arr.map((e) => ({
+          id: e.id,
+          name: e.name,
+          measurement_unit: e.muscle_group || "",
+        }));
+      });
   }
 
-
   addToOrders({ id }) {
-    const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/${id}/shopping_cart/`, {
-      method: "POST",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
-    }).then(this.checkResponse);
+    return this.addToFavorites({ id });
   }
 
   removeFromOrders({ id }) {
-    const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/${id}/shopping_cart/`, {
-      method: "DELETE",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
-    }).then(this.checkResponse);
+    return this.removeFromFavorites({ id });
   }
 
   deleteRecipe({ recipe_id }) {
     const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/${recipe_id}/`, {
+    return fetch(`/api/workout-plans/${recipe_id}/`, {
       method: "DELETE",
       headers: {
         ...this._headers,
@@ -347,14 +332,9 @@ class Api {
   }
 
   downloadFile() {
-    const token = localStorage.getItem("token");
-    return fetch(`/api/recipes/download_shopping_cart/`, {
-      method: "GET",
-      headers: {
-        ...this._headers,
-        authorization: `Token ${token}`,
-      },
-    }).then(this.checkFileDownloadResponse);
+    return Promise.reject({
+      detail: ["Скачивание списка покупок в fitnessgram не реализовано."],
+    });
   }
 }
 

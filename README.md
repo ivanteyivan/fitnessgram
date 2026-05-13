@@ -2,6 +2,24 @@
 
 Foodgram - это социальная сеть для обмена рецептами. Пользователи могут публиковать свои рецепты, подписываться на других пользователей, добавлять рецепты в избранное и создавать списки покупок.
 
+## Fitnessgram (текущая версия репозитория)
+
+Бэкенд переведён на **планы тренировок** (`/api/workout-plans/`) и **упражнения** (`/api/exercises/`). Старый фронт по-прежнему использует URL вида `/recipes/…`, но слой [`frontend/src/api/index.js`](frontend/src/api/index.js) проксирует запросы к новому API.
+
+### Быстрый доступ (Postman / браузер)
+
+| Что | Как |
+|-----|-----|
+| Токен | `POST /api/auth/token/login/` JSON: `{"email":"…","password":"…"}` → поле `auth_token` |
+| Запросы с токеном | Заголовок `Authorization: Token <auth_token>` |
+| Текущий пользователь | `GET /api/users/me/` |
+| Список планов | `GET /api/workout-plans/?page=1&limit=6` (пагинация как в foodgram) |
+| Избранное (фильтр) | `GET /api/workout-plans/?is_favorited=true` |
+| Админка Django | `http://localhost/admin/` (или `http://localhost:8000/admin/` при прямом доступе к backend) |
+| Вход в админку | **Email** (не username): `admin@example.com`, пароль: `admin` — создаётся при старте контейнера командой `create_superuser`, если пользователя ещё нет |
+
+Переменные для CSRF за reverse-proxy при необходимости: `CSRF_TRUSTED_ORIGINS`, `USE_X_FORWARDED_HOST` (см. [`backend/foodgram/settings.py`](backend/foodgram/settings.py)).
+
 ## Технологии
 
 ### Backend
