@@ -40,6 +40,22 @@ class ExercisesWriteField(serializers.ListField):
                     "Поле exercises должно быть JSON-массивом объектов "
                     '{"id", "sets", "reps"}.'
                 ) from exc
+
+        if isinstance(data, list) and data and all(isinstance(item, (str, bytes)) for item in data):
+            import json
+
+            parsed = []
+            for item in data:
+                try:
+                    parsed_item = json.loads(item)
+                except (json.JSONDecodeError, TypeError) as exc:
+                    raise serializers.ValidationError(
+                        "Каждый элемент exercises должен быть JSON-объектом с полями "
+                        '{"id", "sets", "reps"}.'
+                    ) from exc
+                parsed.append(parsed_item)
+            data = parsed
+
         if not isinstance(data, list):
             raise serializers.ValidationError("exercises должен быть списком.")
         return super().to_internal_value(data)

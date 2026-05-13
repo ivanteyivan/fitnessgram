@@ -5,11 +5,11 @@ import LogoFooter from '../../images/logo-footer.png'
 const Footer = () => {
   return <footer className={styles.footer}>
     <Container className={styles.footer__container}>
-      <LinkComponent
+      {/* <LinkComponent
         href='#'
         className={styles.footer__brand}
         title={<img src={LogoFooter} className={styles.footer__logo} />}
-      />
+      /> */}
 
       <div className={styles['footer__menu']}>
         <ul className={styles['footer__menu-list']}>

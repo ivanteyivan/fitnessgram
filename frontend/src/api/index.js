@@ -32,12 +32,32 @@ class Api {
   }
 
   /** Адаптер: план тренировок → поля карточки «рецепта» во фронте foodgram. */
+  _translatePlanName(name) {
+    const map = {
+      "Beginner Full Body": "Начальный комплекс",
+      "Intermediate Split": "Средний сплит",
+      "Advanced Powerlifting": "Продвинутый пауэрлифтинг",
+    };
+    return map[name] || name;
+  }
+
+  _translateExerciseName(name) {
+    const map = {
+      "Push-ups": "Отжимания",
+      "Pull-ups": "Подтягивания",
+      "Squats": "Приседания",
+      "Deadlift": "Становая тяга",
+      "Bench Press": "Жим лёжа",
+    };
+    return map[name] || name;
+  }
+
   _mapWorkoutPlanToRecipeCard(wp) {
     if (!wp) return wp;
     const exercises = wp.exercises || [];
     const ingredients = exercises.map((ex) => ({
       id: ex.id,
-      name: ex.name,
+      name: this._translateExerciseName(ex.name),
       sets: ex.sets,
       reps: ex.reps,
       amount: `${ex.sets}×${ex.reps}`,
@@ -45,7 +65,7 @@ class Api {
     }));
     return {
       id: wp.id,
-      name: wp.name,
+      name: this._translatePlanName(wp.name),
       image: wp.image,
       tags: wp.tags || [],
       author: wp.author || {},
@@ -368,7 +388,7 @@ class Api {
         const arr = Array.isArray(data) ? data : data.results || [];
         return arr.map((e) => ({
           id: e.id,
-          name: e.name,
+          name: this._translateExerciseName(e.name),
           measurement_unit: e.muscle_group || "",
         }));
       });
