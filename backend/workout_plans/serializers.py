@@ -44,7 +44,14 @@ class ExercisesWriteField(serializers.ListField):
             data = self._load_json(data)
 
         if isinstance(data, list) and data and all(isinstance(item, (str, bytes)) for item in data):
-            data = [self._load_json(item) for item in data]
+            parsed = [self._load_json(item) for item in data]
+            if len(parsed) == 1 and isinstance(parsed[0], list):
+                data = parsed[0]
+            else:
+                data = parsed
+
+        if isinstance(data, list) and len(data) == 1 and isinstance(data[0], list):
+            data = data[0]
 
         if not isinstance(data, list):
             raise serializers.ValidationError("exercises должен быть списком.")
