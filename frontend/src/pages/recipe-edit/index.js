@@ -4,7 +4,6 @@ import {
   FileInput,
   Input,
   Title,
-  CheckboxGroup,
   Main,
   Form,
   Button,
@@ -13,103 +12,107 @@ import {
 import styles from "./styles.module.css";
 import api from "../../api";
 import { useEffect, useState } from "react";
-import { useTags } from "../../utils";
 import { useParams, useHistory } from "react-router-dom";
 import MetaTags from "react-meta-tags";
 import { Icons } from "../../components";
 import cn from "classnames";
 
 const RecipeEdit = ({ onItemDelete }) => {
-  const { value, handleChange, setValue } = useTags();
   const [recipeName, setRecipeName] = useState("");
 
   const [ingredientValue, setIngredientValue] = useState({
     name: "",
     id: null,
-    amount: "",
+    sets: "",
+    reps: "",
     measurement_unit: "",
   });
 
   const [recipeIngredients, setRecipeIngredients] = useState([]);
   const [recipeText, setRecipeText] = useState("");
-  const [recipeTime, setRecipeTime] = useState(0);
+  const [recipeTime, setRecipeTime] = useState("");
   const [recipeFile, setRecipeFile] = useState(null);
   const [recipeFileWasManuallyChanged, setRecipeFileWasManuallyChanged] =
     useState(false);
 
   const [ingredients, setIngredients] = useState([]);
   const [showIngredients, setShowIngredients] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [submitError, setSubmitError] = useState({ submitError: "" });
   const [ingredientError, setIngredientError] = useState("");
 
   const history = useHistory();
+  const { id } = useParams();
 
   const handleAddIngredient = () => {
     if (
-      ingredientValue.amount === "" ||
+      ingredientValue.sets === "" ||
+      ingredientValue.reps === "" ||
+      !/^\d+$/.test(String(ingredientValue.sets)) ||
+      !/^\d+$/.test(String(ingredientValue.reps))
+    ) {
+      return setIngredientError(
+        "Подходы и повторения должны быть целыми числами"
+      );
+    }
+    if (
+      Number(ingredientValue.sets) < 1 ||
+      Number(ingredientValue.reps) < 1
+    ) {
+      return setIngredientError("Минимум 1 подход и 1 повторение");
+    }
+
+    if (
       ingredientValue.name === "" ||
       !ingredientValue.id
     ) {
-      return setIngredientError("Ингредиент не выбран");
+      return setIngredientError("Упражнение не выбрано");
     }
 
     if (recipeIngredients.find(({ name }) => name === ingredientValue.name)) {
-      return setIngredientError("Ингредиент уже выбран");
+      return setIngredientError("Это упражнение уже добавлено");
     }
 
-    setRecipeIngredients([...recipeIngredients, ingredientValue]);
+    setRecipeIngredients([...recipeIngredients, { ...ingredientValue }]);
     setIngredientValue({
       name: "",
       id: null,
-      amount: "",
+      sets: "",
+      reps: "",
       measurement_unit: "",
     });
   };
 
-  useEffect(
-    (_) => {
-      if (ingredientValue.name === "") {
-        return setIngredients([]);
-      }
-      api.getIngredients({ name: ingredientValue.name }).then((ingredients) => {
-        setIngredients(ingredients);
+  useEffect(() => {
+    if (ingredientValue.name === "") {
+      return setIngredients([]);
+    }
+    api.getIngredients({ name: ingredientValue.name }).then((ingredients) => {
+      setIngredients(ingredients);
+    });
+  }, [ingredientValue.name]);
+
+  useEffect(() => {
+    api
+      .getRecipe({
+        recipe_id: id,
+      })
+      .then((res) => {
+        const { image, cooking_time, name, ingredients, text } = res;
+        setRecipeText(text);
+        setRecipeName(name);
+        setRecipeTime(String(cooking_time));
+        setRecipeFile(image);
+        setRecipeIngredients(ingredients);
+      })
+      .catch(() => {
+        history.push("/recipes");
       });
-    },
-    [ingredientValue.name]
-  );
+  }, [id, history]);
 
-  const { id } = useParams();
-  useEffect(
-    (_) => {
-      if (!loading) {
-        return;
-      }
-      api
-        .getRecipe({
-          recipe_id: id,
-        })
-        .then((res) => {
-          const { image, cooking_time, name, ingredients, text } = res;
-          setRecipeText(text);
-          setRecipeName(name);
-          setRecipeTime(cooking_time);
-          setRecipeFile(image);
-          setRecipeIngredients(ingredients);
-
-          setLoading(false);
-        })
-        .catch((err) => {
-          history.push("/recipes");
-        });
-    },
-    [value]
-  );
-
-  const handleIngredientAutofill = ({ id, name, measurement_unit }) => {
+  const handleIngredientAutofill = ({ id: exId, name, measurement_unit }) => {
     setIngredientValue({
       ...ingredientValue,
-      id,
+      id: exId,
       name,
       measurement_unit,
     });
@@ -135,11 +138,13 @@ const RecipeEdit = ({ onItemDelete }) => {
     <Main>
       <Container>
         <MetaTags>
-          <title>Редактирование рецепта</title>
-          <meta name="description" content="Фудграм - Редактирование рецепта" />
-          <meta property="og:title" content="Редактирование рецепта" />
+          <title>Редактирование плана — Fitnessgram</title>
+          <meta
+            name="description"
+            content="Fitnessgram — редактирование плана тренировок"
+          />
         </MetaTags>
-        <Title title="Редактирование рецепта" />
+        <Title title="Редактирование тренировочного плана" />
         <Form
           className={styles.form}
           onSubmit={(e) => {
@@ -152,7 +157,8 @@ const RecipeEdit = ({ onItemDelete }) => {
               name: recipeName,
               ingredients: recipeIngredients.map((item) => ({
                 id: item.id,
-                amount: item.amount,
+                sets: Number(item.sets ?? item.amount ?? 1),
+                reps: Number(item.reps ?? 1),
               })),
               cooking_time: recipeTime,
               image: recipeFile,
@@ -160,31 +166,24 @@ const RecipeEdit = ({ onItemDelete }) => {
             };
             api
               .updateRecipe(data, recipeFileWasManuallyChanged)
-              .then((res) => {
+              .then(() => {
                 history.push(`/recipes/${id}`);
               })
               .catch((err) => {
-                const { non_field_errors, ingredients, cooking_time } = err;
+                const { non_field_errors, exercises, duration } = err;
                 if (non_field_errors) {
                   return setSubmitError({
                     submitError: non_field_errors.join(", "),
                   });
                 }
-                if (ingredients) {
+                if (exercises) {
                   return setSubmitError({
-                    submitError: `Ингредиенты: ${
-                      ingredients
-                        .filter((item) => Object.keys(item).length)
-                        .map((item) => {
-                          const error = item[Object.keys(item)[0]];
-                          return error && error.join(" ,");
-                        })[0]
-                    }`,
+                    submitError: `Упражнения: ${JSON.stringify(exercises)}`,
                   });
                 }
-                if (cooking_time) {
+                if (duration) {
                   return setSubmitError({
-                    submitError: `Время готовки: ${cooking_time[0]}`,
+                    submitError: `Длительность: ${duration[0]}`,
                   });
                 }
                 const errors = Object.values(err);
@@ -195,12 +194,11 @@ const RecipeEdit = ({ onItemDelete }) => {
           }}
         >
           <Input
-            label="Название рецепта"
+            label="Название плана"
             onChange={(e) => {
               setSubmitError({ submitError: "" });
               setIngredientError("");
-              const value = e.target.value;
-              setRecipeName(value);
+              setRecipeName(e.target.value);
             }}
             value={recipeName}
             className={styles.mb36}
@@ -208,7 +206,7 @@ const RecipeEdit = ({ onItemDelete }) => {
           <div className={styles.ingredients}>
             <div className={styles.ingredientsInputs}>
               <Input
-                label="Ингредиенты"
+                label="Упражнения"
                 className={styles.ingredientsNameInput}
                 inputClassName={styles.ingredientsInput}
                 labelClassName={styles.ingredientsLabel}
@@ -216,19 +214,18 @@ const RecipeEdit = ({ onItemDelete }) => {
                 onChange={(e) => {
                   setSubmitError({ submitError: "" });
                   setIngredientError("");
-                  const value = e.target.value;
                   setIngredientValue({
                     ...ingredientValue,
-                    name: value,
+                    name: e.target.value,
                   });
                 }}
-                onFocus={(_) => {
+                onFocus={() => {
                   setShowIngredients(true);
                 }}
                 value={ingredientValue.name}
               />
               <div className={styles.ingredientsAmountInputContainer}>
-                <p className={styles.amountText}>в количестве </p>
+                <p className={styles.amountText}>подходы </p>
                 <Input
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -241,15 +238,38 @@ const RecipeEdit = ({ onItemDelete }) => {
                   onChange={(e) => {
                     setSubmitError({ submitError: "" });
                     setIngredientError("");
-                    const value = e.target.value;
                     setIngredientValue({
                       ...ingredientValue,
-                      amount: value,
+                      sets: e.target.value,
                     });
                   }}
-                  placeholder={0}
-                  value={ingredientValue.amount}
+                  placeholder="3"
+                  value={ingredientValue.sets}
                   type="number"
+                  min={1}
+                />
+                <p className={styles.amountText}>повторения </p>
+                <Input
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddIngredient();
+                    }
+                  }}
+                  className={styles.ingredientsAmountInput}
+                  inputClassName={styles.ingredientsAmountValue}
+                  onChange={(e) => {
+                    setSubmitError({ submitError: "" });
+                    setIngredientError("");
+                    setIngredientValue({
+                      ...ingredientValue,
+                      reps: e.target.value,
+                    });
+                  }}
+                  placeholder="12"
+                  value={ingredientValue.reps}
+                  type="number"
+                  min={1}
                 />
                 {ingredientValue.measurement_unit !== "" && (
                   <div className={styles.measurementUnit}>
@@ -260,8 +280,12 @@ const RecipeEdit = ({ onItemDelete }) => {
               {showIngredients && ingredients.length > 0 && (
                 <IngredientsSearch
                   ingredients={ingredients}
-                  onClick={({ id, name, measurement_unit }) => {
-                    handleIngredientAutofill({ id, name, measurement_unit });
+                  onClick={({ id: exId, name, measurement_unit }) => {
+                    handleIngredientAutofill({
+                      id: exId,
+                      name,
+                      measurement_unit,
+                    });
                     setIngredients([]);
                     setShowIngredients(false);
                   }}
@@ -269,7 +293,7 @@ const RecipeEdit = ({ onItemDelete }) => {
               )}
             </div>
             <div className={styles.ingredientAdd} onClick={handleAddIngredient}>
-              Добавить ингредиент
+              Добавить упражнение
             </div>
             {ingredientError && (
               <p className={cn(styles.error, styles.errorIngredient)}>
@@ -279,23 +303,28 @@ const RecipeEdit = ({ onItemDelete }) => {
             <div className={styles.ingredientsAdded}>
               {recipeIngredients.map((item) => {
                 return (
-                  <div className={styles.ingredientsAddedItem}>
+                  <div
+                    className={styles.ingredientsAddedItem}
+                    key={`${item.id}-${item.sets}-${item.reps}-${item.name}`}
+                  >
                     <span className={styles.ingredientsAddedItemTitle}>
                       {item.name}
-                    </span>{" "}
-                    <span>-</span>{" "}
+                    </span>
+                    <span> — </span>
                     <span>
-                      {item.amount}
-                      {item.measurement_unit}
-                    </span>{" "}
+                      {item.sets ?? item.amount}×{item.reps ?? ""}
+                    </span>
+                    {item.measurement_unit ? (
+                      <span> ({item.measurement_unit})</span>
+                    ) : null}{" "}
                     <span
                       className={styles.ingredientsAddedItemRemove}
-                      onClick={(_) => {
-                        const recipeIngredientsUpdated =
+                      onClick={() => {
+                        setRecipeIngredients(
                           recipeIngredients.filter((ingredient) => {
                             return ingredient.id !== item.id;
-                          });
-                        setRecipeIngredients(recipeIngredientsUpdated);
+                          })
+                        );
                       }}
                     >
                       <Icons.IngredientDelete />
@@ -311,21 +340,37 @@ const RecipeEdit = ({ onItemDelete }) => {
               styles.ingredientsAmountInputContainerMob
             )}
           >
-            <p className={styles.amountText}>в количестве </p>
+            <p className={styles.amountText}>подходы </p>
             <Input
               className={styles.ingredientsAmountInput}
               inputClassName={styles.ingredientsAmountValue}
               onChange={(e) => {
                 setSubmitError({ submitError: "" });
                 setIngredientError("");
-                const value = e.target.value;
                 setIngredientValue({
                   ...ingredientValue,
-                  amount: value,
+                  sets: e.target.value,
                 });
               }}
-              placeholder={0}
-              value={ingredientValue.amount}
+              placeholder="3"
+              value={ingredientValue.sets}
+              type="number"
+            />
+            <p className={styles.amountText}>повторения </p>
+            <Input
+              className={styles.ingredientsAmountInput}
+              inputClassName={styles.ingredientsAmountValue}
+              onChange={(e) => {
+                setSubmitError({ submitError: "" });
+                setIngredientError("");
+                setIngredientValue({
+                  ...ingredientValue,
+                  reps: e.target.value,
+                });
+              }}
+              placeholder="12"
+              value={ingredientValue.reps}
+              type="number"
             />
             {ingredientValue.measurement_unit !== "" && (
               <div className={styles.measurementUnit}>
@@ -335,13 +380,12 @@ const RecipeEdit = ({ onItemDelete }) => {
           </div>
           <div className={styles.cookingTime}>
             <Input
-              label="Время приготовления"
+              label="Длительность тренировки"
               className={styles.ingredientsTimeInput}
               labelClassName={styles.cookingTimeLabel}
               inputClassName={styles.ingredientsTimeValue}
               onChange={(e) => {
-                const value = e.target.value;
-                setRecipeTime(value);
+                setRecipeTime(e.target.value);
               }}
               placeholder="0"
               value={recipeTime}
@@ -349,13 +393,12 @@ const RecipeEdit = ({ onItemDelete }) => {
             <div className={styles.cookingTimeUnit}>мин.</div>
           </div>
           <Textarea
-            label="Описание рецепта"
+            label="Описание плана"
             onChange={(e) => {
-              const value = e.target.value;
-              setRecipeText(value);
+              setRecipeText(e.target.value);
             }}
             value={recipeText}
-            placeholder="Опишите действия"
+            placeholder="Цели, разминка, заметки"
           />
           <FileInput
             onChange={(file) => {
@@ -365,7 +408,7 @@ const RecipeEdit = ({ onItemDelete }) => {
             fileTypes={["image/png", "image/jpeg"]}
             fileSize={5000}
             className={styles.fileInput}
-            label="Загрузить фото"
+            label="Загрузить фото плана"
             file={recipeFile}
           />
           <div className={styles.actions}>
@@ -378,14 +421,14 @@ const RecipeEdit = ({ onItemDelete }) => {
             </Button>
             <div
               className={styles.deleteRecipe}
-              onClick={(_) => {
-                api.deleteRecipe({ recipe_id: id }).then((res) => {
+              onClick={() => {
+                api.deleteRecipe({ recipe_id: id }).then(() => {
                   onItemDelete && onItemDelete();
                   history.push("/recipes");
                 });
               }}
             >
-              Удалить
+              Удалить план
             </div>
           </div>
           {submitError.submitError && (

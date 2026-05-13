@@ -25,7 +25,7 @@ const Nav = ({ loggedIn, onSignOut, orders }) => {
   }, [location.pathname])
 
   return <div className={styles.nav}>
-    <LinkComponent href="/cart" className={styles.nav__orders} title={<Orders orders={orders} />} />
+    <LinkComponent href="/subscriptions" className={styles.nav__orders} title={<Orders orders={orders} />} />
 
     <div
       className={styles.menuButton}

@@ -35,8 +35,8 @@ const Favorites = ({ updateOrders }) => {
   return <Main>
     <Container>
       <MetaTags>
-        <title>Избранное</title>
-        <meta name="description" content="Фудграм - Избранное" />
+        <title>Избранное — Fitnessgram</title>
+        <meta name="description" content="Fitnessgram — избранные планы" />
         <meta property="og:title" content="Избранное" />
       </MetaTags>
       <div className={styles.title}>

@@ -30,7 +30,7 @@ const SignIn = ({ onSignIn, submitError, setSubmitError }) => {
           <title>Войти на сайт</title>
           <meta
             name="description"
-            content="Фудграм - Войти на сайт"
+            content="Fitnessgram — Войти на сайт"
           />
           <meta property="og:title" content="Войти на сайт" />
         </MetaTags>

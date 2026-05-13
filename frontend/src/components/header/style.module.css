@@ -17,6 +17,14 @@
   bottom: 12px;
 }
 
+.headerBrand {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #000;
+  line-height: 1.1;
+}
+
 .headerLink {
   text-align: left;
   width: fit-content;

@@ -15,6 +15,25 @@ from .models import (
 User = get_user_model()
 
 
+class ExercisesWriteField(serializers.ListField):
+    """Multipart: exercises приходит строкой JSON."""
+
+    def to_internal_value(self, data):
+        if isinstance(data, (str, bytes)):
+            import json
+
+            try:
+                data = json.loads(data)
+            except (json.JSONDecodeError, TypeError) as exc:
+                raise serializers.ValidationError(
+                    "Поле exercises должно быть JSON-массивом объектов "
+                    '{"id", "sets", "reps"}.'
+                ) from exc
+        if not isinstance(data, list):
+            raise serializers.ValidationError("exercises должен быть списком.")
+        return super().to_internal_value(data)
+
+
 class WorkoutPlanAuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -68,7 +87,7 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
 
 
 class WorkoutPlanCreateSerializer(serializers.ModelSerializer):
-    exercises = serializers.ListField(
+    exercises = ExercisesWriteField(
         child=serializers.DictField(),
         write_only=True,
     )

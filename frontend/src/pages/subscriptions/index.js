@@ -1,57 +1,78 @@
-import { Title, Pagination, Container, Main, SubscriptionList  } from '../../components'
-import { useSubscriptions } from '../../utils'
-import api from '../../api'
-import { useEffect } from 'react'
-import MetaTags from 'react-meta-tags'
+import {
+  Card,
+  Title,
+  Pagination,
+  CardList,
+  Container,
+  Main,
+} from "../../components";
+import styles from "../favorites/styles.module.css";
+import { useRecipes } from "../../utils/index.js";
+import { useEffect } from "react";
+import api from "../../api";
+import MetaTags from "react-meta-tags";
 
-const SubscriptionsPage = () => {
+const SubscriptionsPage = ({ updateOrders }) => {
   const {
-    subscriptions,
-    setSubscriptions,
-    subscriptionsCount,
-    setSubscriptionsCount,
-    removeSubscription,
-    subscriptionsPage,
-    setSubscriptionsPage
-  } = useSubscriptions()
+    recipes,
+    setRecipes,
+    recipesCount,
+    setRecipesCount,
+    recipesPage,
+    setRecipesPage,
+    handleLike,
+    handleAddToCart,
+  } = useRecipes();
 
-  const getSubscriptions = ({ page }) => {
+  const loadPlans = ({ page = 1 }) => {
     api
-      .getSubscriptions({ page })
-      .then(res => {
-        setSubscriptions(res.results)
-        setSubscriptionsCount(res.count)
-      })
-  }
+      .getSubscriptions({ page, limit: 6 })
+      .then((res) => {
+        const { results, count } = res;
+        setRecipes(results);
+        setRecipesCount(count);
+      });
+  };
 
-  useEffect(_ => {
-    getSubscriptions({ page: subscriptionsPage })
-  }, [subscriptionsPage])
+  useEffect(() => {
+    loadPlans({ page: recipesPage });
+  }, [recipesPage]);
 
+  return (
+    <Main>
+      <Container>
+        <MetaTags>
+          <title>Мой список тренировок — Fitnessgram</title>
+          <meta
+            name="description"
+            content="Fitnessgram — сохранённые планы тренировок"
+          />
+        </MetaTags>
+        <div className={styles.title}>
+          <Title title="Мой список тренировок" />
+        </div>
+        {recipes.length > 0 && (
+          <CardList>
+            {recipes.map((card) => (
+              <Card
+                {...card}
+                key={card.id}
+                updateOrders={updateOrders}
+                handleLike={handleLike}
+                handleAddToCart={handleAddToCart}
+              />
+            ))}
+          </CardList>
+        )}
+        <Pagination
+          count={recipesCount}
+          limit={6}
+          page={recipesPage}
+          onPageChange={(page) => setRecipesPage(page)}
+        />
+      </Container>
+    </Main>
+  );
+};
 
-  return <Main>
-    <Container>
-      <MetaTags>
-        <title>Мои подписки</title>
-        <meta name="description" content="Фудграм - Мои подписки" />
-        <meta property="og:title" content="Мои подписки" />
-      </MetaTags>
-      <Title
-        title='Мои подписки'
-      />
-      <SubscriptionList
-        subscriptions={subscriptions}
-        removeSubscription={removeSubscription}
-      />
-      <Pagination
-        count={subscriptionsCount}
-        limit={6}
-        onPageChange={page => {
-          setSubscriptionsPage(page)
-        }}
-      />
-    </Container>
-  </Main>
-}
-
-export default SubscriptionsPage
+export default SubscriptionsPage;

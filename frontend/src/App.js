@@ -244,6 +244,7 @@ function App() {
               path="/subscriptions"
               component={Subscriptions}
               loggedIn={loggedIn}
+              updateOrders={updateOrders}
             />
 
             <ProtectedRoute
@@ -291,7 +292,6 @@ function App() {
               <SingleCard
                 loggedIn={loggedIn}
                 loadItem={loadSingleItem}
-                updateOrders={updateOrders}
               />
             </Route>
 

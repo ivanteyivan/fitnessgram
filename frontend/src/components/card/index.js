@@ -11,12 +11,9 @@ const Card = ({
   id,
   image,
   is_favorited,
-  is_in_shopping_cart,
   cooking_time,
   author = {},
   handleLike,
-  handleAddToCart,
-  updateOrders,
 }) => {
   const authContext = useContext(AuthContext);
   const [toLogin, setToLogin] = useState(false);
@@ -30,7 +27,7 @@ const Card = ({
             <>
               <LinkComponent href="/signin" title="Войдите" /> или{" "}
               <LinkComponent href="/signup" title="зарегистрируйтесь" />, чтобы
-              сохранить рецепт
+              сохранить план в списке
             </>
           }
           onClose={() => {
@@ -79,31 +76,6 @@ const Card = ({
         </div>
         <div className={styles.card__controls}>
           <Button
-            className={styles.card__add}
-            clickHandler={(_) => {
-              if (!authContext) {
-                return setToLogin(true);
-              }
-              handleAddToCart({
-                id,
-                toAdd: Number(!is_in_shopping_cart),
-                callback: updateOrders,
-              });
-            }}
-          >
-            {is_in_shopping_cart ? (
-              <>
-                <Icons.CheckIcon />
-                Рецепт добавлен
-              </>
-            ) : (
-              <>
-                <Icons.PlusIcon /> Добавить в покупки
-              </>
-            )}
-          </Button>
-
-          <Button
             modifier="style_none"
             clickHandler={(_) => {
               if (!authContext) {
@@ -116,7 +88,9 @@ const Card = ({
             })}
             data-tooltip-id={id}
             data-tooltip-content={
-              is_favorited ? "Удалить из избранного" : "Добавить в избранное"
+              is_favorited
+                ? "Убрать из моего списка"
+                : "Добавить в мой список тренировок"
             }
             data-tooltip-place="bottom"
           >

@@ -4,7 +4,6 @@ import {
   FileInput,
   Input,
   Title,
-  CheckboxGroup,
   Main,
   Form,
   Button,
@@ -13,19 +12,19 @@ import {
 import styles from "./styles.module.css";
 import api from "../../api";
 import { useEffect, useState } from "react";
-import { useTags } from "../../utils";
 import { useHistory } from "react-router-dom";
 import MetaTags from "react-meta-tags";
 import { Icons } from "../../components";
 import cn from "classnames";
 
-const RecipeCreate = ({ onEdit }) => {
+const RecipeCreate = () => {
   const [recipeName, setRecipeName] = useState("");
   const history = useHistory();
   const [ingredientValue, setIngredientValue] = useState({
     name: "",
     id: null,
-    amount: "",
+    sets: "",
+    reps: "",
     measurement_unit: "",
   });
   const [recipeIngredients, setRecipeIngredients] = useState([]);
@@ -40,44 +39,51 @@ const RecipeCreate = ({ onEdit }) => {
 
   const handleAddIngredient = () => {
     if (
-      ingredientValue.amount !== "" &&
-      !/^\d+$/.test(ingredientValue.amount)
+      ingredientValue.sets === "" ||
+      ingredientValue.reps === "" ||
+      !/^\d+$/.test(String(ingredientValue.sets)) ||
+      !/^\d+$/.test(String(ingredientValue.reps))
     ) {
-      return setIngredientError("Количество ингредиента должно быть целым числом");
+      return setIngredientError(
+        "Подходы и повторения должны быть целыми числами"
+      );
+    }
+    if (
+      Number(ingredientValue.sets) < 1 ||
+      Number(ingredientValue.reps) < 1
+    ) {
+      return setIngredientError("Минимум 1 подход и 1 повторение");
     }
 
     if (
-      ingredientValue.amount === "" ||
       ingredientValue.name === "" ||
       !ingredientValue.id
     ) {
-      return setIngredientError("Ингредиент не выбран");
+      return setIngredientError("Упражнение не выбрано");
     }
 
     if (recipeIngredients.find(({ name }) => name === ingredientValue.name)) {
-      return setIngredientError("Ингредиент уже выбран");
+      return setIngredientError("Это упражнение уже добавлено");
     }
 
-    setRecipeIngredients([...recipeIngredients, ingredientValue]);
+    setRecipeIngredients([...recipeIngredients, { ...ingredientValue }]);
     setIngredientValue({
       name: "",
       id: null,
-      amount: "",
+      sets: "",
+      reps: "",
       measurement_unit: "",
     });
   };
 
-  useEffect(
-    (_) => {
-      if (ingredientValue.name === "") {
-        return setIngredients([]);
-      }
-      api.getIngredients({ name: ingredientValue.name }).then((ingredients) => {
-        setIngredients(ingredients);
-      });
-    },
-    [ingredientValue.name]
-  );
+  useEffect(() => {
+    if (ingredientValue.name === "") {
+      return setIngredients([]);
+    }
+    api.getIngredients({ name: ingredientValue.name }).then((ingredients) => {
+      setIngredients(ingredients);
+    });
+  }, [ingredientValue.name]);
 
   const handleIngredientAutofill = ({ id, name, measurement_unit }) => {
     setIngredientValue({
@@ -108,11 +114,13 @@ const RecipeCreate = ({ onEdit }) => {
     <Main>
       <Container>
         <MetaTags>
-          <title>Создание рецепта</title>
-          <meta name="description" content="Фудграм - Создание рецепта" />
-          <meta property="og:title" content="Создание рецепта" />
+          <title>Создание плана — Fitnessgram</title>
+          <meta
+            name="description"
+            content="Fitnessgram — новый план тренировок"
+          />
         </MetaTags>
-        <Title title="Создание рецепта" />
+        <Title title="Создание тренировочного плана" />
         <Form
           className={styles.form}
           onSubmit={(e) => {
@@ -125,7 +133,8 @@ const RecipeCreate = ({ onEdit }) => {
               name: recipeName,
               ingredients: recipeIngredients.map((item) => ({
                 id: item.id,
-                amount: item.amount,
+                sets: Number(item.sets),
+                reps: Number(item.reps),
               })),
               cooking_time: recipeTime,
               image: recipeFile,
@@ -136,27 +145,20 @@ const RecipeCreate = ({ onEdit }) => {
                 history.push(`/recipes/${res.id}`);
               })
               .catch((err) => {
-                const { non_field_errors, ingredients, cooking_time } = err;
+                const { non_field_errors, exercises, duration } = err;
                 if (non_field_errors) {
                   return setSubmitError({
                     submitError: non_field_errors.join(", "),
                   });
                 }
-                if (ingredients) {
+                if (exercises) {
                   return setSubmitError({
-                    submitError: `Ингредиенты: ${
-                      ingredients
-                        .filter((item) => Object.keys(item).length)
-                        .map((item) => {
-                          const error = item[Object.keys(item)[0]];
-                          return error && error.join(" ,");
-                        })[0]
-                    }`,
+                    submitError: `Упражнения: ${JSON.stringify(exercises)}`,
                   });
                 }
-                if (cooking_time) {
+                if (duration) {
                   return setSubmitError({
-                    submitError: `Время готовки: ${cooking_time[0]}`,
+                    submitError: `Длительность: ${duration[0]}`,
                   });
                 }
                 const errors = Object.values(err);
@@ -167,19 +169,18 @@ const RecipeCreate = ({ onEdit }) => {
           }}
         >
           <Input
-            label="Название рецепта"
+            label="Название плана"
             onChange={(e) => {
               setSubmitError({ submitError: "" });
               setIngredientError("");
-              const value = e.target.value;
-              setRecipeName(value);
+              setRecipeName(e.target.value);
             }}
             className={styles.mb36}
           />
           <div className={styles.ingredients}>
             <div className={styles.ingredientsInputs}>
               <Input
-                label="Ингредиенты"
+                label="Упражнения"
                 className={styles.ingredientsNameInput}
                 inputClassName={styles.ingredientsInput}
                 placeholder="Начните вводить название"
@@ -187,19 +188,18 @@ const RecipeCreate = ({ onEdit }) => {
                 onChange={(e) => {
                   setSubmitError({ submitError: "" });
                   setIngredientError("");
-                  const value = e.target.value;
                   setIngredientValue({
                     ...ingredientValue,
-                    name: value,
+                    name: e.target.value,
                   });
                 }}
-                onFocus={(_) => {
+                onFocus={() => {
                   setShowIngredients(true);
                 }}
                 value={ingredientValue.name}
               />
               <div className={styles.ingredientsAmountInputContainer}>
-                <p className={styles.amountText}>в количестве </p>
+                <p className={styles.amountText}>подходы </p>
                 <Input
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -212,15 +212,38 @@ const RecipeCreate = ({ onEdit }) => {
                   onChange={(e) => {
                     setSubmitError({ submitError: "" });
                     setIngredientError("");
-                    const value = e.target.value;
                     setIngredientValue({
                       ...ingredientValue,
-                      amount: value,
+                      sets: e.target.value,
                     });
                   }}
-                  placeholder={0}
-                  value={ingredientValue.amount}
+                  placeholder="3"
+                  value={ingredientValue.sets}
                   type="number"
+                  min={1}
+                />
+                <p className={styles.amountText}>повторения </p>
+                <Input
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddIngredient();
+                    }
+                  }}
+                  className={styles.ingredientsAmountInput}
+                  inputClassName={styles.ingredientsAmountValue}
+                  onChange={(e) => {
+                    setSubmitError({ submitError: "" });
+                    setIngredientError("");
+                    setIngredientValue({
+                      ...ingredientValue,
+                      reps: e.target.value,
+                    });
+                  }}
+                  placeholder="12"
+                  value={ingredientValue.reps}
+                  type="number"
+                  min={1}
                 />
                 {ingredientValue.measurement_unit !== "" && (
                   <div className={styles.measurementUnit}>
@@ -240,7 +263,7 @@ const RecipeCreate = ({ onEdit }) => {
               )}
             </div>
             <div className={styles.ingredientAdd} onClick={handleAddIngredient}>
-              Добавить ингредиент
+              Добавить упражнение
             </div>
             {ingredientError && (
               <p className={cn(styles.error, styles.errorIngredient)}>
@@ -250,23 +273,32 @@ const RecipeCreate = ({ onEdit }) => {
             <div className={styles.ingredientsAdded}>
               {recipeIngredients.map((item) => {
                 return (
-                  <div className={styles.ingredientsAddedItem}>
+                  <div
+                    className={styles.ingredientsAddedItem}
+                    key={`${item.id}-${item.sets}-${item.reps}`}
+                  >
                     <span className={styles.ingredientsAddedItemTitle}>
                       {item.name}
                     </span>
-                    <span>, </span>{" "}
+                    <span> — </span>
                     <span>
-                      {item.amount}
-                      {item.measurement_unit}
-                    </span>{" "}
+                      {item.sets}×{item.reps}
+                    </span>
+                    {item.measurement_unit ? (
+                      <span> ({item.measurement_unit})</span>
+                    ) : null}{" "}
                     <span
                       className={styles.ingredientsAddedItemRemove}
-                      onClick={(_) => {
-                        const recipeIngredientsUpdated =
+                      onClick={() => {
+                        setRecipeIngredients(
                           recipeIngredients.filter((ingredient) => {
-                            return ingredient.id !== item.id;
-                          });
-                        setRecipeIngredients(recipeIngredientsUpdated);
+                            return !(
+                              ingredient.id === item.id &&
+                              ingredient.sets === item.sets &&
+                              ingredient.reps === item.reps
+                            );
+                          })
+                        );
                       }}
                     >
                       <Icons.IngredientDelete />
@@ -278,13 +310,12 @@ const RecipeCreate = ({ onEdit }) => {
           </div>
           <div className={styles.cookingTime}>
             <Input
-              label="Время приготовления"
+              label="Длительность тренировки"
               className={styles.ingredientsTimeInput}
               labelClassName={styles.cookingTimeLabel}
               inputClassName={styles.ingredientsTimeValue}
               onChange={(e) => {
-                const value = e.target.value;
-                setRecipeTime(value);
+                setRecipeTime(e.target.value);
               }}
               value={recipeTime}
               placeholder="0"
@@ -292,12 +323,11 @@ const RecipeCreate = ({ onEdit }) => {
             <div className={styles.cookingTimeUnit}>мин.</div>
           </div>
           <Textarea
-            label="Описание рецепта"
+            label="Описание плана"
             onChange={(e) => {
-              const value = e.target.value;
-              setRecipeText(value);
+              setRecipeText(e.target.value);
             }}
-            placeholder="Опишите действия"
+            placeholder="Цели, разминка, заметки"
           />
           <FileInput
             onChange={(file) => {
@@ -306,10 +336,10 @@ const RecipeCreate = ({ onEdit }) => {
             fileTypes={["image/png", "image/jpeg"]}
             fileSize={5000}
             className={styles.fileInput}
-            label="Загрузить фото"
+            label="Загрузить фото плана"
           />
           <Button modifier="style_dark" type="submit" className={styles.button}>
-            Создать рецепт
+            Создать план
           </Button>
           {submitError.submitError && (
             <p className={styles.error}>{submitError.submitError}</p>

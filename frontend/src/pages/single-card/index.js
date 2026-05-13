@@ -19,15 +19,14 @@ import { useRecipe } from "../../utils/index.js";
 import api from "../../api";
 import { Notification } from "../../components/notification";
 
-const SingleCard = ({ loadItem, updateOrders }) => {
+const SingleCard = ({ loadItem }) => {
   const [loading, setLoading] = useState(true);
   const [notificationPosition, setNotificationPosition] = useState("-100%");
   const [notificationError, setNotificationError] = useState({
     text: "",
     position: "-100%",
   });
-  const { recipe, setRecipe, handleLike, handleAddToCart, handleSubscribe } =
-    useRecipe();
+  const { recipe, setRecipe, handleLike } = useRecipe();
   const authContext = useContext(AuthContext);
   const userContext = useContext(UserContext);
   const { id } = useParams();
@@ -86,7 +85,6 @@ const SingleCard = ({ loadItem, updateOrders }) => {
     ingredients,
     text,
     is_favorited,
-    is_in_shopping_cart,
   } = recipe;
 
   return (
@@ -94,7 +92,7 @@ const SingleCard = ({ loadItem, updateOrders }) => {
       <Container>
         <MetaTags>
           <title>{name}</title>
-          <meta name="description" content={`Фудграм - ${name}`} />
+          <meta name="description" content={`Fitnessgram — ${name}`} />
           <meta property="og:title" content={name} />
         </MetaTags>
         <div className={styles["single-card"]}>
@@ -112,7 +110,7 @@ const SingleCard = ({ loadItem, updateOrders }) => {
                   clickHandler={handleCopyLink}
                   className={cn(styles["single-card__save-button"])}
                   data-tooltip-id="tooltip-copy"
-                  data-tooltip-content="Скопировать прямую ссылку на рецепт"
+                  data-tooltip-content="Скопировать ссылку на план"
                   data-tooltip-place="top"
                 >
                   <Icons.CopyLinkIcon />
@@ -164,39 +162,6 @@ const SingleCard = ({ loadItem, updateOrders }) => {
                   />
                 </div>
               </p>
-              {(userContext || {}).id !== author.id && authContext && (
-                <>
-                  <Button
-                    className={cn(
-                      styles["single-card__button"],
-                      styles["single-card__button_add-user"],
-                      {
-                        [styles["single-card__button_add-user_active"]]:
-                          author.is_subscribed,
-                      }
-                    )}
-                    modifier={
-                      author.is_subscribed ? "style_dark" : "style_light"
-                    }
-                    clickHandler={(_) => {
-                      handleSubscribe({
-                        author_id: author.id,
-                        toSubscribe: !author.is_subscribed,
-                      });
-                    }}
-                    data-tooltip-id="tooltip-subscribe"
-                    data-tooltip-content={
-                      author.is_subscribed
-                        ? "Отписаться от автора"
-                        : "Подписаться на автора"
-                    }
-                    data-tooltip-place="bottom"
-                  >
-                    <Icons.AddUser />
-                  </Button>
-                  <Tooltip id="tooltip-subscribe" />
-                </>
-              )}
             </div>
             <div className={styles["single-card__buttons"]}>
               {authContext && (
@@ -207,21 +172,20 @@ const SingleCard = ({ loadItem, updateOrders }) => {
                   )}
                   modifier="style_dark"
                   clickHandler={(_) => {
-                    handleAddToCart({
+                    handleLike({
                       id,
-                      toAdd: Number(!is_in_shopping_cart),
-                      callback: updateOrders,
+                      toLike: Number(!is_favorited),
                     });
                   }}
                 >
-                  {is_in_shopping_cart ? (
+                  {is_favorited ? (
                     <>
                       <Icons.CheckIcon />
-                      Рецепт добавлен
+                      План в моём списке
                     </>
                   ) : (
                     <>
-                      <Icons.PlusIcon /> Добавить в покупки
+                      <Icons.PlusIcon /> Добавить в мой список
                     </>
                   )}
                 </Button>
@@ -231,7 +195,7 @@ const SingleCard = ({ loadItem, updateOrders }) => {
                   href={`${url}/edit`}
                   className={styles["single-card__edit"]}
                 >
-                  Редактировать рецепт
+                  Редактировать план
                 </Button>
               )}
             </div>

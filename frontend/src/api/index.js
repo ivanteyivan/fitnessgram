@@ -34,6 +34,15 @@ class Api {
   /** Адаптер: план тренировок → поля карточки «рецепта» во фронте foodgram. */
   _mapWorkoutPlanToRecipeCard(wp) {
     if (!wp) return wp;
+    const exercises = wp.exercises || [];
+    const ingredients = exercises.map((ex) => ({
+      id: ex.id,
+      name: ex.name,
+      sets: ex.sets,
+      reps: ex.reps,
+      amount: `${ex.sets}×${ex.reps}`,
+      measurement_unit: ex.muscle_group || "",
+    }));
     return {
       id: wp.id,
       name: wp.name,
@@ -42,10 +51,29 @@ class Api {
       author: wp.author || {},
       cooking_time: wp.duration,
       is_favorited: Boolean(wp.is_favorited),
-      is_in_shopping_cart: false,
+      is_in_shopping_cart: Boolean(wp.is_favorited),
       text: wp.description,
-      ingredients: wp.ingredients || [],
+      ingredients,
     };
+  }
+
+  _dataUrlToBlob(dataUrl) {
+    const arr = dataUrl.split(",");
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  }
+
+  _appendImageToFormData(formData, image, filename = "plan.jpg") {
+    if (!image) return;
+    if (image instanceof Blob || image instanceof File) {
+      formData.append("image", image, filename);
+    } else if (typeof image === "string" && image.startsWith("data:")) {
+      formData.append("image", this._dataUrlToBlob(image), filename);
+    }
   }
 
   _normalizePaginated(data) {
@@ -198,20 +226,55 @@ class Api {
       .then((wp) => this._mapWorkoutPlanToRecipeCard(wp));
   }
 
-  createRecipe() {
-    return Promise.reject({
-      non_field_errors: [
-        "Создание плана через старую форму рецепта не поддерживается.",
-      ],
-    });
+  createRecipe({ name, text, image, cooking_time, ingredients }) {
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", text);
+    formData.append("duration", String(Number(cooking_time)));
+    const exercises = ingredients.map((item) => ({
+      id: Number(item.id),
+      sets: Number(item.sets ?? item.amount ?? 1),
+      reps: Number(item.reps ?? 1),
+    }));
+    formData.append("exercises", JSON.stringify(exercises));
+    this._appendImageToFormData(formData, image, "plan.jpg");
+    return fetch("/api/workout-plans/", {
+      method: "POST",
+      headers: {
+        authorization: `Token ${token}`,
+      },
+      body: formData,
+    })
+      .then(this.checkResponse)
+      .then((wp) => this._mapWorkoutPlanToRecipeCard(wp));
   }
 
-  updateRecipe() {
-    return Promise.reject({
-      non_field_errors: [
-        "Редактирование через старую форму рецепта не поддерживается.",
-      ],
-    });
+  updateRecipe(data, wasImageUpdated) {
+    const token = localStorage.getItem("token");
+    const { name, recipe_id, image, cooking_time, text, ingredients } = data;
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", text);
+    formData.append("duration", String(Number(cooking_time)));
+    const exercises = ingredients.map((item) => ({
+      id: Number(item.id),
+      sets: Number(item.sets ?? item.amount ?? 1),
+      reps: Number(item.reps ?? 1),
+    }));
+    formData.append("exercises", JSON.stringify(exercises));
+    if (wasImageUpdated && image) {
+      this._appendImageToFormData(formData, image, "plan.jpg");
+    }
+    return fetch(`/api/workout-plans/${recipe_id}/`, {
+      method: "PATCH",
+      headers: {
+        authorization: `Token ${token}`,
+      },
+      body: formData,
+    })
+      .then(this.checkResponse)
+      .then((wp) => this._mapWorkoutPlanToRecipeCard(wp));
   }
 
   addToFavorites({ id }) {
@@ -276,14 +339,13 @@ class Api {
       .then((data) => this._normalizePaginated(data));
   }
 
-  // subscriptions (в API fitnessgram нет подписок — заглушки)
-
-  getSubscriptions() {
-    return Promise.resolve({ results: [], count: 0 });
+  // «Подписки» во фронте → избранные планы (мой список тренировок)
+  getSubscriptions({ page = 1, limit = 6 } = {}) {
+    return this.getRecipes({ page, limit, is_favorited: 1 });
   }
 
-  deleteSubscriptions() {
-    return Promise.resolve({});
+  deleteSubscriptions({ author_id }) {
+    return this.removeFromFavorites({ id: author_id });
   }
 
   subscribe() {

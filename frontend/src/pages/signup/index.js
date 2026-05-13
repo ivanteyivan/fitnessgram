@@ -30,7 +30,7 @@ const SignUp = ({ onSignUp, submitError, setSubmitError }) => {
           <title>Регистрация</title>
           <meta
             name="description"
-            content="Фудграм - Регистрация"
+            content="Fitnessgram — Регистрация"
           />
           <meta property="og:title" content="Регистрация" />
         </MetaTags>

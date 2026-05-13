@@ -13,6 +13,7 @@ export default function useRecipes () {
       const recipesUpdated = recipes.map(recipe => {
         if (recipe.id === id) {
           recipe.is_favorited = toLike
+          recipe.is_in_shopping_cart = toLike
         }
         return recipe
       })
@@ -32,6 +33,7 @@ export default function useRecipes () {
       const recipesUpdated = recipes.map(recipe => {
         if (recipe.id === id) {
           recipe.is_in_shopping_cart = toAdd
+          recipe.is_favorited = toAdd
         }
         return recipe
       })
