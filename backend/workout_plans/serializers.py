@@ -29,35 +29,26 @@ class ExercisesWriteField(serializers.ListField):
         kwargs['child'] = ExerciseInputSerializer()
         super().__init__(**kwargs)
 
+    def _load_json(self, value):
+        import json
+
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise serializers.ValidationError(
+                "Поле exercises должно быть JSON-массивом объектов {\"id\", \"sets\", \"reps\"}."
+            ) from exc
+
     def to_internal_value(self, data):
         if isinstance(data, (str, bytes)):
-            import json
-
-            try:
-                data = json.loads(data)
-            except (json.JSONDecodeError, TypeError) as exc:
-                raise serializers.ValidationError(
-                    "Поле exercises должно быть JSON-массивом объектов "
-                    '{"id", "sets", "reps"}.'
-                ) from exc
+            data = self._load_json(data)
 
         if isinstance(data, list) and data and all(isinstance(item, (str, bytes)) for item in data):
-            import json
-
-            parsed = []
-            for item in data:
-                try:
-                    parsed_item = json.loads(item)
-                except (json.JSONDecodeError, TypeError) as exc:
-                    raise serializers.ValidationError(
-                        "Каждый элемент exercises должен быть JSON-объектом с полями "
-                        '{"id", "sets", "reps"}.'
-                    ) from exc
-                parsed.append(parsed_item)
-            data = parsed
+            data = [self._load_json(item) for item in data]
 
         if not isinstance(data, list):
             raise serializers.ValidationError("exercises должен быть списком.")
+
         return super().to_internal_value(data)
 
 
