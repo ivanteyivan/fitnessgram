@@ -15,8 +15,19 @@ from .models import (
 User = get_user_model()
 
 
+class ExerciseInputSerializer(serializers.Serializer):
+    """Валидатор для одного упражнения в плане тренировок."""
+    id = serializers.IntegerField(required=True, min_value=1)
+    sets = serializers.IntegerField(required=True, min_value=1)
+    reps = serializers.IntegerField(required=True, min_value=1)
+
+
 class ExercisesWriteField(serializers.ListField):
     """Multipart: exercises приходит строкой JSON."""
+
+    def __init__(self, **kwargs):
+        kwargs['child'] = ExerciseInputSerializer()
+        super().__init__(**kwargs)
 
     def to_internal_value(self, data):
         if isinstance(data, (str, bytes)):
@@ -87,10 +98,7 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
 
 
 class WorkoutPlanCreateSerializer(serializers.ModelSerializer):
-    exercises = ExercisesWriteField(
-        child=serializers.DictField(),
-        write_only=True,
-    )
+    exercises = ExercisesWriteField(write_only=True)
 
     class Meta:
         model = WorkoutPlan

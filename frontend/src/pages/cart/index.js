@@ -36,12 +36,12 @@ const Cart = ({ updateOrders, orders }) => {
   return <Main>
     <Container className={styles.container}>
       <MetaTags>
-        <title>Список покупок</title>
-        <meta name="description" content="Фудграм - Список покупок" />
-        <meta property="og:title" content="Список покупок" />
+        <title>Список тренировок</title>
+        <meta name="description" content="Fitnessgram - Список тренировок" />
+        <meta property="og:title" content="Список тренировок" />
       </MetaTags>
       <div className={styles.cart}>
-        <Title title='Список покупок' />
+        <Title title='Список тренировок' />
         <PurchaseList
           orders={recipes}
           handleRemoveFromCart={handleAddToCart}
@@ -50,7 +50,7 @@ const Cart = ({ updateOrders, orders }) => {
         {orders > 0 && <Button
           modifier='style_dark'
           clickHandler={downloadDocument}
-        >Скачать список</Button>}
+        >Скачать план</Button>}
       </div>
     </Container>
   </Main>
